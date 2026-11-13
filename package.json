@@ -1,0 +1,26 @@
+{
+  "name": "goodreads-csv-importer",
+  "version": "1.0.0",
+  "description": "Obsidian plugin to import Goodreads CSV exports into Markdown notes with customizable frontmatter and cover images.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "obsidian",
+    "goodreads",
+    "csv",
+    "books"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "^1.7.2",
+    "tslib": "^2.6.2",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

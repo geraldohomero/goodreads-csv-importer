@@ -1,0 +1,191 @@
+.goodreads-settings .goodreads-fm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.goodreads-settings .goodreads-fm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 14px;
+}
+
+.goodreads-settings .goodreads-fm-row {
+  display: grid;
+  grid-template-columns: 22px 130px 125px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.goodreads-settings .goodreads-fm-row.is-disabled {
+  opacity: 0.55;
+}
+
+.goodreads-settings .goodreads-fm-key,
+.goodreads-settings .goodreads-fm-template,
+.goodreads-settings .goodreads-fm-format {
+  width: 100%;
+  min-width: 0;
+}
+
+.goodreads-settings .goodreads-fm-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.goodreads-settings .goodreads-fm-btn {
+  padding: 2px 7px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.goodreads-settings .goodreads-fm-btn.is-danger:hover {
+  color: var(--text-error);
+}
+
+.goodreads-settings .goodreads-body-textarea {
+  width: 100%;
+  min-width: 280px;
+  font-family: var(--font-monospace);
+}
+
+.goodreads-settings .goodreads-preview-code {
+  padding: 12px;
+  border-radius: 6px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.goodreads-settings .goodreads-vars-details {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background-color: var(--background-secondary);
+}
+
+.goodreads-settings .goodreads-vars-details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.goodreads-settings .goodreads-vars-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.goodreads-import-modal .goodreads-file-picker-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: var(--button-radius, 4px);
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: var(--font-ui-small, 13px);
+  font-weight: 500;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.goodreads-import-modal .goodreads-file-picker-btn:hover {
+  background-color: var(--interactive-accent-hover);
+}
+
+.goodreads-import-modal .goodreads-file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.goodreads-import-modal .goodreads-dropzone {
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px dashed var(--background-modifier-border-hover, var(--background-modifier-border));
+  border-radius: 6px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.goodreads-import-modal .goodreads-dropzone.is-dragover {
+  background-color: var(--background-secondary);
+  border-color: var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+.goodreads-import-modal .goodreads-csv-status {
+  margin: 8px 0 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background-color: var(--background-secondary);
+  font-size: 13px;
+}
+
+.goodreads-import-modal .goodreads-progress-wrapper {
+  margin: 14px 0;
+}
+
+.goodreads-import-modal .goodreads-progress-bar {
+  width: 100%;
+  height: 14px;
+}
+
+.goodreads-import-modal .goodreads-progress-text {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.goodreads-import-modal .goodreads-import-summary {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background-color: var(--background-secondary);
+}
+
+.goodreads-import-modal .goodreads-errors-title {
+  color: var(--text-error);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.goodreads-import-modal .goodreads-errors-list {
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.goodreads-import-modal .goodreads-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+@media (max-width: 680px) {
+  .goodreads-settings .goodreads-fm-row {
+    grid-template-columns: 22px 1fr;
+  }
+}
