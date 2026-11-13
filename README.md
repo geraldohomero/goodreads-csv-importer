@@ -4,6 +4,8 @@
 
 Import Goodreads library exports (`.csv`) directly into your Obsidian vault as Markdown notes with customizable YAML frontmatter, book synopses, and local cover images.
 
+> The end of the Goodreads RSS feed made me do this plugin. Also, [Booksidian](https://github.com/MichaBrugger/booksidian_plugin) was a great inspiration for the frontmatter builder and the workflow itself. I used to use Booksidian, but the end of the RSS feed made it impossible to keep my reading notes in sync with Goodreads. This plugin is a replacement for my workflow, and I hope it helps you too in some way. 
+
 ## Features
 
 - **CSV Export Import:** Select a `.csv` file from your vault, pick one from your computer, or drag and drop `goodreads_library_export.csv` into the import modal.
