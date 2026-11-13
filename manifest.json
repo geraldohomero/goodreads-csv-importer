@@ -1,7 +1,7 @@
 {
   "id": "goodreads-csv-importer",
   "name": "Goodreads CSV Importer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.4.0",
   "description": "Import Goodreads CSV library exports into customizable Markdown notes with frontmatter, book synopses, and cover images.",
   "author": "Geraldo H. Couto Neto",
