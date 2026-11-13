@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Setting, TFile } from "obsidian";
+import { App, Modal, Notice, Setting } from "obsidian";
 import { parseGoodreadsCsv } from "../csvParser";
 import { filterRowsByShelf, importGoodreadsCsv } from "../importer";
 import type GoodreadsImporterPlugin from "../main";
@@ -38,34 +38,7 @@ export class GoodreadsImportModal extends Modal {
       text: `Notes will be saved to "${this.plugin.settings.notesFolder || "(vault root)"}" and covers to "${this.plugin.settings.coversFolder || "(vault root)"}".`
     });
 
-    // Option 1: Select a .csv file already inside the Vault
-    const vaultCsvFiles = this.app.vault
-      .getFiles()
-      .filter((f) => f.extension.toLowerCase() === "csv");
-
-    if (vaultCsvFiles.length > 0) {
-      let chosenVaultFile: TFile = vaultCsvFiles[0];
-      new Setting(contentEl)
-        .setName("CSV file in vault")
-        .setDesc("Choose a .csv file already stored in your vault.")
-        .addDropdown((dropdown) => {
-          for (const file of vaultCsvFiles) {
-            dropdown.addOption(file.path, file.path);
-          }
-          dropdown.onChange((path) => {
-            const found = vaultCsvFiles.find((f) => f.path === path);
-            if (found) chosenVaultFile = found;
-          });
-        })
-        .addButton((btn) =>
-          btn.setButtonText("Load").onClick(async () => {
-            const text = await this.app.vault.read(chosenVaultFile);
-            this.loadCsvText(text, chosenVaultFile.path);
-          })
-        );
-    }
-
-    // Option 2: Pick a .csv file from the computer (real DOM file input + drag-and-drop)
+    // Pick a .csv file from the computer (real DOM file input + drag-and-drop)
     const localFileSetting = new Setting(contentEl)
       .setName("CSV file from computer")
       .setDesc("Select or drop your goodreads_library_export.csv file.");
@@ -80,12 +53,20 @@ export class GoodreadsImportModal extends Modal {
       cls: "goodreads-file-input"
     });
     fileInput.accept = ".csv,text/csv";
-    fileInput.addEventListener("change", async () => {
+    fileInput.addEventListener("change", () => {
       const file = fileInput.files?.[0];
       if (!file) return;
-      const text = await file.text();
-      this.loadCsvText(text, file.name);
-      fileInput.value = "";
+      void (async () => {
+        try {
+          const text = await file.text();
+          this.loadCsvText(text, file.name);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          new Notice(`Failed to read CSV file: ${message}`);
+        } finally {
+          fileInput.value = "";
+        }
+      })();
     });
 
     const dropZone = contentEl.createDiv({
@@ -99,13 +80,20 @@ export class GoodreadsImportModal extends Modal {
     dropZone.addEventListener("dragleave", () => {
       dropZone.removeClass("is-dragover");
     });
-    dropZone.addEventListener("drop", async (e) => {
+    dropZone.addEventListener("drop", (e) => {
       e.preventDefault();
       dropZone.removeClass("is-dragover");
       const file = e.dataTransfer?.files?.[0];
       if (!file) return;
-      const text = await file.text();
-      this.loadCsvText(text, file.name);
+      void (async () => {
+        try {
+          const text = await file.text();
+          this.loadCsvText(text, file.name);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          new Notice(`Failed to read CSV file: ${message}`);
+        }
+      })();
     });
 
     this.statusInfoEl = contentEl.createDiv({

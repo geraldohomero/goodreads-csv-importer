@@ -49,7 +49,14 @@
   color: var(--text-error);
 }
 
-.goodreads-settings .goodreads-body-textarea {
+.goodreads-settings .goodreads-block-setting {
+  display: block;
+  border-top: none;
+  padding: 0;
+}
+
+.goodreads-settings .goodreads-body-textarea,
+.goodreads-settings .setting-item-control textarea {
   width: 100%;
   min-width: 280px;
   font-family: var(--font-monospace);
@@ -180,8 +187,8 @@
   margin-top: 16px;
 }
 
-.is-hidden {
-  display: none !important;
+.goodreads-import-modal .is-hidden {
+  display: none;
 }
 
 @media (max-width: 680px) {

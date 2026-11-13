@@ -1,4 +1,4 @@
-import { App, TFile, normalizePath, requestUrl } from "obsidian";
+import { App, TFile, TFolder, normalizePath, requestUrl } from "obsidian";
 import { parseGoodreadsCsv, rowToBookVariables } from "./csvParser";
 import {
   buildNoteContent,
@@ -24,7 +24,7 @@ const GOODREADS_HEADERS = {
 };
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 export async function ensureFolderExists(
@@ -131,28 +131,39 @@ async function buildExistingBookIndex(
   notesFolder: string
 ): Promise<Map<string, TFile>> {
   const index = new Map<string, TFile>();
-  const targetParent = notesFolder || "/";
-  const files = app.vault.getMarkdownFiles();
+  const targetFolder =
+    !notesFolder || notesFolder === "/"
+      ? app.vault.getRoot()
+      : app.vault.getAbstractFileByPath(notesFolder);
 
-  for (const file of files) {
-    const parentPath = file.parent?.path ?? "/";
-    if (parentPath !== targetParent) {
+  if (!(targetFolder instanceof TFolder)) {
+    return index;
+  }
+
+  for (const child of targetFolder.children) {
+    if (!(child instanceof TFile) || child.extension !== "md") {
       continue;
     }
 
-    const cachedId = app.metadataCache.getFileCache(file)?.frontmatter?.id;
-    if (cachedId !== undefined && cachedId !== null && String(cachedId).trim()) {
-      index.set(String(cachedId).trim(), file);
-      continue;
+    const frontmatter = app.metadataCache.getFileCache(child)?.frontmatter as
+      | Record<string, unknown>
+      | undefined;
+    const cachedId = frontmatter?.id;
+    if (typeof cachedId === "string" || typeof cachedId === "number") {
+      const trimmedId = String(cachedId).trim();
+      if (trimmedId) {
+        index.set(trimmedId, child);
+        continue;
+      }
     }
 
     try {
-      const content = await app.vault.cachedRead(file);
+      const content = await app.vault.cachedRead(child);
       const fmMatch = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content);
       if (fmMatch) {
         const idMatch = /^id:\s*['"]?([^'"\r\n]+)['"]?\s*$/m.exec(fmMatch[1]);
         if (idMatch?.[1]) {
-          index.set(idMatch[1].trim(), file);
+          index.set(idMatch[1].trim(), child);
         }
       }
     } catch {

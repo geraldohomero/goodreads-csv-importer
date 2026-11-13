@@ -16,17 +16,17 @@ const ENTITY_MAP: Record<string, string> = {
 
 export function decodeHtmlEntities(text: string): string {
   return text
-    .replace(/&#(\d+);/g, (_, code) => {
+    .replace(/&#(\d+);/g, (match: string, code: string) => {
       const n = Number(code);
-      return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+      return Number.isFinite(n) ? String.fromCodePoint(n) : match;
     })
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+    .replace(/&#x([0-9a-fA-F]+);/g, (match: string, hex: string) => {
       const n = parseInt(hex, 16);
-      return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+      return Number.isFinite(n) ? String.fromCodePoint(n) : match;
     })
     .replace(
       /&(?:amp|lt|gt|quot|#39|#x27|apos|nbsp|mdash|ndash|hellip);/g,
-      (entity) => ENTITY_MAP[entity] ?? entity
+      (entity: string) => ENTITY_MAP[entity] ?? entity
     );
 }
 
@@ -47,12 +47,12 @@ export function htmlToMarkdown(html: string): string {
     .replace(/<\/div>\s*<div[^>]*>/gi, "\n\n")
     .replace(/<\/?div[^>]*>/gi, "\n")
     // Bold / Strong
-    .replace(/<(strong|b)(?:\s+[^>]*)?>([\s\S]*?)<\/\1>/gi, (_, __, inner) => {
+    .replace(/<(strong|b)(?:\s+[^>]*)?>([\s\S]*?)<\/\1>/gi, (_match: string, _tag: string, inner: string) => {
       const trimmed = inner.trim();
       return trimmed ? `**${trimmed}**` : "";
     })
     // Italic / Emphasis
-    .replace(/<(em|i)(?:\s+[^>]*)?>([\s\S]*?)<\/\1>/gi, (_, __, inner) => {
+    .replace(/<(em|i)(?:\s+[^>]*)?>([\s\S]*?)<\/\1>/gi, (_match: string, _tag: string, inner: string) => {
       const trimmed = inner.trim();
       return trimmed ? `*${trimmed}*` : "";
     })

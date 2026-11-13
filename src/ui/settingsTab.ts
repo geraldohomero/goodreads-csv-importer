@@ -2,7 +2,8 @@ import {
   App,
   Notice,
   PluginSettingTab,
-  Setting
+  Setting,
+  SettingDefinitionItem
 } from "obsidian";
 import {
   AVAILABLE_VARIABLES_HELP,
@@ -29,24 +30,289 @@ export class GoodreadsSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  getControlValue(key: string): unknown {
+    const settings = this.plugin.settings;
+    switch (key) {
+      case "notesFolder":
+        return settings.notesFolder;
+      case "coversFolder":
+        return settings.coversFolder;
+      case "fileNameTemplate":
+        return settings.fileNameTemplate;
+      case "defaultShelfFilter":
+        return settings.defaultShelfFilter;
+      case "ignoredShelves":
+        return settings.ignoredShelves;
+      case "existingNoteBehavior":
+        return settings.existingNoteBehavior;
+      case "fetchFromGoodreads":
+        return settings.fetchFromGoodreads;
+      case "requestDelayMs":
+        return settings.requestDelayMs;
+      case "bodyTemplate":
+        return settings.bodyTemplate;
+      default:
+        return undefined;
+    }
+  }
+
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    const settings = this.plugin.settings;
+    switch (key) {
+      case "notesFolder":
+        settings.notesFolder = typeof value === "string" ? value.trim() : "";
+        break;
+      case "coversFolder":
+        settings.coversFolder = typeof value === "string" ? value.trim() : "";
+        break;
+      case "fileNameTemplate":
+        settings.fileNameTemplate =
+          typeof value === "string" && value ? value : "{{shortTitle}}";
+        break;
+      case "defaultShelfFilter":
+        settings.defaultShelfFilter =
+          typeof value === "string" ? value.trim() : "";
+        break;
+      case "ignoredShelves":
+        settings.ignoredShelves =
+          typeof value === "string" ? value.trim() : "";
+        break;
+      case "existingNoteBehavior":
+        if (
+          value === "update-frontmatter" ||
+          value === "skip" ||
+          value === "overwrite"
+        ) {
+          settings.existingNoteBehavior = value;
+        }
+        break;
+      case "fetchFromGoodreads":
+        settings.fetchFromGoodreads = Boolean(value);
+        break;
+      case "requestDelayMs": {
+        const parsed = typeof value === "number" ? value : Number(value);
+        if (!Number.isNaN(parsed) && parsed >= 0) {
+          settings.requestDelayMs = parsed;
+        }
+        break;
+      }
+      case "bodyTemplate":
+        settings.bodyTemplate = typeof value === "string" ? value : "";
+        break;
+      default:
+        return;
+    }
+
+    await this.plugin.saveSettings();
+    this.updatePreview();
+  }
+
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        type: "group",
+        cls: "goodreads-settings",
+        items: [
+          {
+            name: "Import Goodreads library",
+            desc: "Select a goodreads_library_export.csv file to generate notes and download cover images.",
+            render: (setting) => {
+              this.renderImportAction(setting);
+            }
+          }
+        ]
+      },
+      {
+        type: "group",
+        heading: "Folders and files",
+        cls: "goodreads-settings",
+        items: [
+          {
+            name: "Notes folder",
+            desc: "Vault path where book notes will be created.",
+            control: {
+              type: "text",
+              key: "notesFolder",
+              placeholder: "Books"
+            }
+          },
+          {
+            name: "Covers folder",
+            desc: "Vault path where cover images (<id>.jpg) will be saved.",
+            control: {
+              type: "text",
+              key: "coversFolder",
+              placeholder: "Books/Covers"
+            }
+          },
+          {
+            name: "Note filename template",
+            desc: "Filename for each generated Markdown note (e.g. {{shortTitle}} or {{cleanTitle}}).",
+            control: {
+              type: "text",
+              key: "fileNameTemplate",
+              placeholder: "{{shortTitle}}",
+              defaultValue: "{{shortTitle}}"
+            }
+          },
+          {
+            name: "Default shelf filter",
+            desc: "Shelf pre-selected in the import modal (e.g. literature). Leave blank to include all shelves; each imported book still receives all of its shelves in frontmatter.",
+            control: {
+              type: "text",
+              key: "defaultShelfFilter",
+              placeholder: "All shelves"
+            }
+          },
+          {
+            name: "Ignored shelves in frontmatter",
+            desc: "Comma-separated shelf names to omit from the YAML 'shelves' list (e.g. owned).",
+            control: {
+              type: "text",
+              key: "ignoredShelves",
+              placeholder: "None"
+            }
+          },
+          {
+            name: "Existing notes",
+            desc: "Action to take when a book note already exists in the target folder.",
+            control: {
+              type: "dropdown",
+              key: "existingNoteBehavior",
+              options: {
+                "update-frontmatter": "Update frontmatter only (preserve body)",
+                skip: "Skip existing note",
+                overwrite: "Overwrite entire note"
+              }
+            }
+          },
+          {
+            name: "Fetch synopsis and cover from Goodreads",
+            desc: "When enabled, fetches each book's Goodreads page to download its cover (.jpg) and extract its synopsis (description).",
+            control: {
+              type: "toggle",
+              key: "fetchFromGoodreads"
+            }
+          },
+          {
+            name: "Request delay (ms)",
+            desc: "Pause between Goodreads page requests to avoid rate limiting.",
+            control: {
+              type: "number",
+              key: "requestDelayMs",
+              placeholder: "300",
+              min: 0,
+              step: 50,
+              defaultValue: 300,
+              validate: (value: number) =>
+                Number.isNaN(value) || value < 0
+                  ? "Request delay must be 0 or greater."
+                  : undefined
+            }
+          }
+        ]
+      },
+      {
+        type: "group",
+        heading: "Frontmatter properties",
+        cls: "goodreads-settings",
+        items: [
+          {
+            name: "Reset frontmatter defaults",
+            desc: "Enable, rename, reorder, or edit property values using CSV variables such as {{author}}, {{cleanTitle}}, {{coverPath}}, {{shelves}}, and {{description}}.",
+            render: (setting) => {
+              this.renderResetFrontmatterAction(setting, () => {
+                this.update();
+              });
+            }
+          },
+          {
+            name: "Frontmatter properties list",
+            searchable: false,
+            render: (setting) => {
+              setting.settingEl.empty();
+              setting.settingEl.addClass("goodreads-block-setting");
+              this.fieldsContainerEl = setting.settingEl.createDiv({
+                cls: "goodreads-fm-list"
+              });
+              this.renderFrontmatterFields();
+              return () => {
+                this.fieldsContainerEl = null;
+              };
+            }
+          },
+          {
+            name: "Add property",
+            desc: "Choose an extra CSV field or create a custom property.",
+            render: (setting) => {
+              this.renderAddPropertyControls(setting);
+            }
+          }
+        ]
+      },
+      {
+        type: "group",
+        heading: "Note body",
+        cls: "goodreads-settings",
+        items: [
+          {
+            name: "Note body template",
+            desc: "Content inserted below the frontmatter (supports {{...}} variables).",
+            control: {
+              type: "textarea",
+              key: "bodyTemplate",
+              placeholder: "> #goodreads",
+              rows: 4
+            }
+          }
+        ]
+      },
+      {
+        type: "group",
+        heading: "Generated note preview (sample: Mistborn)",
+        cls: "goodreads-settings",
+        items: [
+          {
+            name: "Note preview",
+            searchable: false,
+            render: (setting) => {
+              setting.settingEl.empty();
+              setting.settingEl.addClass("goodreads-block-setting");
+              this.previewEl = setting.settingEl.createEl("pre", {
+                cls: "goodreads-preview-code"
+              });
+              this.updatePreview();
+              return () => {
+                this.previewEl = null;
+              };
+            }
+          },
+          {
+            name: "Template variables reference",
+            desc: "Show all available template variables ({{...}}).",
+            aliases: ["variables", "template"],
+            render: (setting) => {
+              setting.settingEl.empty();
+              setting.settingEl.addClass("goodreads-block-setting");
+              this.renderVariablesReference(setting.settingEl);
+            }
+          }
+        ]
+      }
+    ];
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.addClass("goodreads-settings");
 
-    new Setting(containerEl)
+    const importSetting = new Setting(containerEl)
       .setName("Import Goodreads library")
       .setDesc(
         "Select a goodreads_library_export.csv file to generate notes and download cover images."
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText("Import CSV...")
-          .setCta()
-          .onClick(() => {
-            this.plugin.openImportModal();
-          })
       );
+    this.renderImportAction(importSetting);
 
     new Setting(containerEl).setName("Folders and files").setHeading();
 
@@ -57,10 +323,8 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("Books")
           .setValue(this.plugin.settings.notesFolder)
-          .onChange(async (value) => {
-            this.plugin.settings.notesFolder = value.trim();
-            await this.plugin.saveSettings();
-            this.updatePreview();
+          .onChange((value) => {
+            void this.setControlValue("notesFolder", value);
           })
       );
 
@@ -73,10 +337,8 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("Books/Covers")
           .setValue(this.plugin.settings.coversFolder)
-          .onChange(async (value) => {
-            this.plugin.settings.coversFolder = value.trim();
-            await this.plugin.saveSettings();
-            this.updatePreview();
+          .onChange((value) => {
+            void this.setControlValue("coversFolder", value);
           })
       );
 
@@ -89,9 +351,8 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("{{shortTitle}}")
           .setValue(this.plugin.settings.fileNameTemplate)
-          .onChange(async (value) => {
-            this.plugin.settings.fileNameTemplate = value || "{{shortTitle}}";
-            await this.plugin.saveSettings();
+          .onChange((value) => {
+            void this.setControlValue("fileNameTemplate", value);
           })
       );
 
@@ -104,9 +365,8 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("All shelves")
           .setValue(this.plugin.settings.defaultShelfFilter)
-          .onChange(async (value) => {
-            this.plugin.settings.defaultShelfFilter = value.trim();
-            await this.plugin.saveSettings();
+          .onChange((value) => {
+            void this.setControlValue("defaultShelfFilter", value);
           })
       );
 
@@ -119,10 +379,8 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("None")
           .setValue(this.plugin.settings.ignoredShelves)
-          .onChange(async (value) => {
-            this.plugin.settings.ignoredShelves = value.trim();
-            await this.plugin.saveSettings();
-            this.updatePreview();
+          .onChange((value) => {
+            void this.setControlValue("ignoredShelves", value);
           })
       );
 
@@ -138,10 +396,11 @@ export class GoodreadsSettingTab extends PluginSettingTab {
           .addOption("skip", "Skip existing note")
           .addOption("overwrite", "Overwrite entire note")
           .setValue(this.plugin.settings.existingNoteBehavior)
-          .onChange(async (value) => {
-            this.plugin.settings.existingNoteBehavior =
-              value as ExistingNoteBehavior;
-            await this.plugin.saveSettings();
+          .onChange((value) => {
+            void this.setControlValue(
+              "existingNoteBehavior",
+              value as ExistingNoteBehavior
+            );
           })
       );
 
@@ -153,9 +412,8 @@ export class GoodreadsSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.fetchFromGoodreads)
-          .onChange(async (value) => {
-            this.plugin.settings.fetchFromGoodreads = value;
-            await this.plugin.saveSettings();
+          .onChange((value) => {
+            void this.setControlValue("fetchFromGoodreads", value);
           })
       );
 
@@ -168,72 +426,31 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         text
           .setPlaceholder("300")
           .setValue(String(this.plugin.settings.requestDelayMs))
-          .onChange(async (value) => {
-            const parsed = Number(value);
-            if (!Number.isNaN(parsed) && parsed >= 0) {
-              this.plugin.settings.requestDelayMs = parsed;
-              await this.plugin.saveSettings();
-            }
+          .onChange((value) => {
+            void this.setControlValue("requestDelayMs", value);
           })
       );
 
     // Frontmatter visual builder
-    new Setting(containerEl)
+    const fmHeaderSetting = new Setting(containerEl)
       .setName("Frontmatter properties")
       .setDesc(
         "Enable, rename, reorder, or edit property values using CSV variables such as {{author}}, {{cleanTitle}}, {{coverPath}}, {{shelves}}, and {{description}}."
       )
-      .setHeading()
-      .addButton((btn) =>
-        btn.setButtonText("Reset defaults").onClick(async () => {
-          this.plugin.settings.frontmatterFields =
-            DEFAULT_FRONTMATTER_FIELDS.map((f) => ({ ...f }));
-          this.plugin.settings.bodyTemplate = DEFAULT_SETTINGS.bodyTemplate;
-          await this.plugin.saveSettings();
-          this.renderFrontmatterFields();
-          this.updatePreview();
-          new Notice("Frontmatter settings reset to defaults.");
-        })
-      );
+      .setHeading();
+    this.renderResetFrontmatterAction(fmHeaderSetting, () => {
+      this.display();
+    });
 
     this.fieldsContainerEl = containerEl.createDiv({
       cls: "goodreads-fm-list"
     });
     this.renderFrontmatterFields();
 
-    // Add property row with preset selector
-    let selectedPresetIndex = 0;
-    new Setting(containerEl)
+    const addPropertySetting = new Setting(containerEl)
       .setName("Add property")
-      .setDesc("Choose an extra CSV field or create a custom property.")
-      .addDropdown((dropdown) => {
-        VARIABLE_PRESETS.forEach((preset, idx) => {
-          dropdown.addOption(String(idx), preset.label);
-        });
-        dropdown.onChange((val) => {
-          selectedPresetIndex = Number(val) || 0;
-        });
-      })
-      .addButton((btn) =>
-        btn
-          .setButtonText("+ Add")
-          .setCta()
-          .onClick(async () => {
-            const preset =
-              VARIABLE_PRESETS[selectedPresetIndex] ?? VARIABLE_PRESETS[0];
-            const newField: FrontmatterFieldConfig = {
-              id: `field-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-              key: preset.key,
-              template: preset.template,
-              format: preset.format,
-              enabled: true
-            };
-            this.plugin.settings.frontmatterFields.push(newField);
-            await this.plugin.saveSettings();
-            this.renderFrontmatterFields();
-            this.updatePreview();
-          })
-      );
+      .setDesc("Choose an extra CSV field or create a custom property.");
+    this.renderAddPropertyControls(addPropertySetting);
 
     new Setting(containerEl).setName("Note body").setHeading();
     new Setting(containerEl)
@@ -245,10 +462,8 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         area
           .setPlaceholder("> #goodreads")
           .setValue(this.plugin.settings.bodyTemplate)
-          .onChange(async (value) => {
-            this.plugin.settings.bodyTemplate = value;
-            await this.plugin.saveSettings();
-            this.updatePreview();
+          .onChange((value) => {
+            void this.setControlValue("bodyTemplate", value);
           });
         area.inputEl.rows = 4;
         area.inputEl.addClass("goodreads-body-textarea");
@@ -263,8 +478,71 @@ export class GoodreadsSettingTab extends PluginSettingTab {
     });
     this.updatePreview();
 
-    // Reference table of variables
-    const detailsEl = containerEl.createEl("details", {
+    this.renderVariablesReference(containerEl);
+  }
+
+  private renderImportAction(setting: Setting): void {
+    setting.addButton((btn) =>
+      btn
+        .setButtonText("Import CSV...")
+        .setCta()
+        .onClick(() => {
+          this.plugin.openImportModal();
+        })
+    );
+  }
+
+  private renderResetFrontmatterAction(
+    setting: Setting,
+    onAfterReset: () => void
+  ): void {
+    setting.addButton((btn) =>
+      btn.setButtonText("Reset defaults").onClick(() => {
+        void (async () => {
+          this.plugin.settings.frontmatterFields =
+            DEFAULT_FRONTMATTER_FIELDS.map((f) => ({ ...f }));
+          this.plugin.settings.bodyTemplate = DEFAULT_SETTINGS.bodyTemplate;
+          await this.plugin.saveSettings();
+          onAfterReset();
+          new Notice("Frontmatter settings reset to defaults.");
+        })();
+      })
+    );
+  }
+
+  private renderAddPropertyControls(setting: Setting): void {
+    let selectedPresetIndex = 0;
+    setting
+      .addDropdown((dropdown) => {
+        VARIABLE_PRESETS.forEach((preset, idx) => {
+          dropdown.addOption(String(idx), preset.label);
+        });
+        dropdown.onChange((val) => {
+          selectedPresetIndex = Number(val) || 0;
+        });
+      })
+      .addButton((btn) =>
+        btn
+          .setButtonText("+ Add")
+          .setCta()
+          .onClick(() => {
+            const preset =
+              VARIABLE_PRESETS[selectedPresetIndex] ?? VARIABLE_PRESETS[0];
+            const newField: FrontmatterFieldConfig = {
+              id: `field-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              key: preset.key,
+              template: preset.template,
+              format: preset.format,
+              enabled: true
+            };
+            this.plugin.settings.frontmatterFields.push(newField);
+            this.saveAndRefreshPreview(true);
+          })
+      );
+  }
+
+  private renderVariablesReference(hostEl: HTMLElement): void {
+    const detailsEl = hostEl.createEl("details", {
       cls: "goodreads-vars-details"
     });
     detailsEl.createEl("summary", {
@@ -276,6 +554,16 @@ export class GoodreadsSettingTab extends PluginSettingTab {
       li.createEl("code", { text: item.token });
       li.appendText(` — ${item.description}`);
     }
+  }
+
+  private saveAndRefreshPreview(rerenderFields = false): void {
+    void (async () => {
+      await this.plugin.saveSettings();
+      if (rerenderFields) {
+        this.renderFrontmatterFields();
+      }
+      this.updatePreview();
+    })();
   }
 
   private renderFrontmatterFields(): void {
@@ -299,11 +587,10 @@ export class GoodreadsSettingTab extends PluginSettingTab {
       });
       toggleInput.checked = field.enabled;
       toggleInput.title = "Enable / disable property";
-      toggleInput.addEventListener("change", async () => {
+      toggleInput.addEventListener("change", () => {
         field.enabled = toggleInput.checked;
         rowEl.toggleClass("is-disabled", !field.enabled);
-        await this.plugin.saveSettings();
-        this.updatePreview();
+        this.saveAndRefreshPreview();
       });
 
       // Key input
@@ -314,10 +601,9 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         placeholder: "key"
       });
       keyInput.title = "YAML property name";
-      keyInput.addEventListener("input", async () => {
+      keyInput.addEventListener("input", () => {
         field.key = keyInput.value;
-        await this.plugin.saveSettings();
-        this.updatePreview();
+        this.saveAndRefreshPreview();
       });
 
       // Format dropdown
@@ -342,10 +628,9 @@ export class GoodreadsSettingTab extends PluginSettingTab {
           optEl.selected = true;
         }
       }
-      formatSelect.addEventListener("change", async () => {
+      formatSelect.addEventListener("change", () => {
         field.format = formatSelect.value as FrontmatterFieldFormat;
-        await this.plugin.saveSettings();
-        this.updatePreview();
+        this.saveAndRefreshPreview();
       });
 
       // Template value input
@@ -356,10 +641,9 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         placeholder: "{{variable}}"
       });
       templateInput.title = "Value template";
-      templateInput.addEventListener("input", async () => {
+      templateInput.addEventListener("input", () => {
         field.template = templateInput.value;
-        await this.plugin.saveSettings();
-        this.updatePreview();
+        this.saveAndRefreshPreview();
       });
 
       // Action buttons: up, down, delete
@@ -371,14 +655,12 @@ export class GoodreadsSettingTab extends PluginSettingTab {
       });
       upBtn.title = "Move up";
       upBtn.disabled = index === 0;
-      upBtn.addEventListener("click", async () => {
+      upBtn.addEventListener("click", () => {
         if (index === 0) return;
         const temp = fields[index - 1];
         fields[index - 1] = fields[index];
         fields[index] = temp;
-        await this.plugin.saveSettings();
-        this.renderFrontmatterFields();
-        this.updatePreview();
+        this.saveAndRefreshPreview(true);
       });
 
       const downBtn = actionsEl.createEl("button", {
@@ -387,14 +669,12 @@ export class GoodreadsSettingTab extends PluginSettingTab {
       });
       downBtn.title = "Move down";
       downBtn.disabled = index === fields.length - 1;
-      downBtn.addEventListener("click", async () => {
+      downBtn.addEventListener("click", () => {
         if (index >= fields.length - 1) return;
         const temp = fields[index + 1];
         fields[index + 1] = fields[index];
         fields[index] = temp;
-        await this.plugin.saveSettings();
-        this.renderFrontmatterFields();
-        this.updatePreview();
+        this.saveAndRefreshPreview(true);
       });
 
       const delBtn = actionsEl.createEl("button", {
@@ -402,11 +682,9 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         cls: "goodreads-fm-btn is-danger"
       });
       delBtn.title = "Remove property";
-      delBtn.addEventListener("click", async () => {
+      delBtn.addEventListener("click", () => {
         fields.splice(index, 1);
-        await this.plugin.saveSettings();
-        this.renderFrontmatterFields();
-        this.updatePreview();
+        this.saveAndRefreshPreview(true);
       });
     });
   }
