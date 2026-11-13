@@ -1,6 +1,6 @@
 # Goodreads CSV Importer
 
-<img src="image.png" alt="AI:W" width="25" height="25"> - Based on the [0rwx](https://0rwx.com/) Framework
+**AI:W** - Based on the [0rwx](https://0rwx.com/) Framework
 
 Import Goodreads library exports (`.csv`) directly into your Obsidian vault as Markdown notes with customizable YAML frontmatter, book synopses, and local cover images.
 
