@@ -145,10 +145,8 @@ async function buildExistingBookIndex(
       continue;
     }
 
-    const frontmatter = app.metadataCache.getFileCache(child)?.frontmatter as
-      | Record<string, unknown>
-      | undefined;
-    const cachedId = frontmatter?.id;
+    const cachedId: unknown =
+      app.metadataCache.getFileCache(child)?.frontmatter?.id;
     if (typeof cachedId === "string" || typeof cachedId === "number") {
       const trimmedId = String(cachedId).trim();
       if (trimmedId) {

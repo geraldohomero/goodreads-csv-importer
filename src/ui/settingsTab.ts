@@ -15,7 +15,6 @@ import {
 import { buildNoteContent } from "../frontmatterBuilder";
 import type GoodreadsImporterPlugin from "../main";
 import {
-  ExistingNoteBehavior,
   FrontmatterFieldConfig,
   FrontmatterFieldFormat
 } from "../types";
@@ -221,9 +220,7 @@ export class GoodreadsSettingTab extends PluginSettingTab {
             name: "Reset frontmatter defaults",
             desc: "Enable, rename, reorder, or edit property values using CSV variables such as {{author}}, {{cleanTitle}}, {{coverPath}}, {{shelves}}, and {{description}}.",
             render: (setting) => {
-              this.renderResetFrontmatterAction(setting, () => {
-                this.update();
-              });
+              this.renderResetFrontmatterAction(setting);
             }
           },
           {
@@ -397,10 +394,7 @@ export class GoodreadsSettingTab extends PluginSettingTab {
           .addOption("overwrite", "Overwrite entire note")
           .setValue(this.plugin.settings.existingNoteBehavior)
           .onChange((value) => {
-            void this.setControlValue(
-              "existingNoteBehavior",
-              value as ExistingNoteBehavior
-            );
+            void this.setControlValue("existingNoteBehavior", value);
           })
       );
 
@@ -438,9 +432,7 @@ export class GoodreadsSettingTab extends PluginSettingTab {
         "Enable, rename, reorder, or edit property values using CSV variables such as {{author}}, {{cleanTitle}}, {{coverPath}}, {{shelves}}, and {{description}}."
       )
       .setHeading();
-    this.renderResetFrontmatterAction(fmHeaderSetting, () => {
-      this.display();
-    });
+    this.renderResetFrontmatterAction(fmHeaderSetting);
 
     this.fieldsContainerEl = containerEl.createDiv({
       cls: "goodreads-fm-list"
@@ -492,10 +484,7 @@ export class GoodreadsSettingTab extends PluginSettingTab {
     );
   }
 
-  private renderResetFrontmatterAction(
-    setting: Setting,
-    onAfterReset: () => void
-  ): void {
+  private renderResetFrontmatterAction(setting: Setting): void {
     setting.addButton((btn) =>
       btn.setButtonText("Reset defaults").onClick(() => {
         void (async () => {
@@ -503,7 +492,8 @@ export class GoodreadsSettingTab extends PluginSettingTab {
             DEFAULT_FRONTMATTER_FIELDS.map((f) => ({ ...f }));
           this.plugin.settings.bodyTemplate = DEFAULT_SETTINGS.bodyTemplate;
           await this.plugin.saveSettings();
-          onAfterReset();
+          this.renderFrontmatterFields();
+          this.updatePreview();
           new Notice("Frontmatter settings reset to defaults.");
         })();
       })

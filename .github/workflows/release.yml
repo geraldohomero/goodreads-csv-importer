@@ -42,6 +42,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: Release ${{ github.ref_name }} of Goodreads CSV Importer for Obsidian.
           generate_release_notes: true
           files: |
             main.js
